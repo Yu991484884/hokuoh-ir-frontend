@@ -1115,7 +1115,7 @@ selectUser(type, formName) {
     },
 
     resetParam() {
-      this.affiliationcode = "";
+        this.centernm = "";
       this.factor = "";
       this.causeperson = "";
       this.today = [];

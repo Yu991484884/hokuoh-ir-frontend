@@ -1,6 +1,6 @@
 <template>
-  <div style="text-align: center; background-color: rgb(255,255,255); height: 100%; padding: 0px; margin: 0px;">
-    <h1 style="font-size: 50px;">{{ user.name }}</h1>
+  <div class="home-page">
+    <h1 class="page-title">{{ user.name }}</h1>
 
     <el-descriptions title="個人設定" :column="2" size="40" border>
       <el-descriptions-item>
@@ -24,9 +24,7 @@
           <i class="el-icon-place"></i>
           組織
         </template>
-        {{
-          getOrganizationName(user.organizationcode) 
-        }}
+        {{ getOrganizationName(user.organizationcode) }}
       </el-descriptions-item>
 
       <el-descriptions-item>
@@ -34,7 +32,7 @@
           <i class="el-icon-tickets"></i>
           権限
         </template>
-        {{ getRoleName(user.roleid)}}
+        {{ getRoleName(user.roleid) }}
       </el-descriptions-item>
 
       <el-descriptions-item>
@@ -50,18 +48,37 @@
           <i class="el-icon-s-help"></i>
           役職
         </template>
-        {{
-         getJobTitleName(user.jobtitlecode)
-        }}
+        {{ getJobTitleName(user.jobtitlecode) }}
       </el-descriptions-item>
     </el-descriptions>
 
-    <DateUtils></DateUtils>
+    <DateUtils />
 
-    <div class="chart-wrap">
-      <div class="chart-title">ECharts Sample (Builder Stats)</div>
-      <div ref="builderChart" class="chart"></div>
+<div class="chart-wrap">
+  <div class="chart-title">
+    当月IRダッシュボード
+    <span v-if="dashboardData.startDate && dashboardData.endDate" class="chart-subtitle">
+      （{{ dashboardData.startDate }} ～ {{ dashboardData.endDate }}）
+    </span>
+  </div>
+
+  <!-- グラフ -->
+  <div v-loading="chartLoading" ref="builderChart" class="chart"></div>
+
+  <!-- ★ここに追加★ -->
+  <div class="chart-summary-row">
+    <div class="chart-summary-card">
+      <div class="summary-label">総件数</div>
+      <div class="summary-value">{{ formatNumber(totalCount) }}件</div>
     </div>
+
+    <div class="chart-summary-card">
+      <div class="summary-label">IR対応費用合計</div>
+      <div class="summary-value">¥{{ formatNumber(totalExpense) }}</div>
+    </div>
+  </div>
+
+</div>
   </div>
 </template>
 
@@ -69,79 +86,151 @@
 import DateUtils from "./DateUtils";
 import * as echarts from "echarts";
 
-const MAX_TOP = 3000000;
-const MAX_BOTTOM = 500;
-
 export default {
   name: "Home",
   components: { DateUtils },
+
   data() {
     return {
-    user: {},
-    chart: null,
-    unitList: [],
-    authorityList: []
+      user: {},
+      chart: null,
+      unitList: [],
+      authorityList: [],
+      chartLoading: false,
+      dashboardData: {
+        startDate: "",
+        endDate: "",
+        countList: [],
+        expenseList: []
+      },
+          totalCount: 0,
+    totalExpense: 0
     };
   },
+
   methods: {
     init() {
       const curUser = sessionStorage.getItem("CurUser");
       this.user = curUser ? JSON.parse(curUser) : {};
     },
 
-loadUnits() {
-  this.$axios.get(this.$httpUrl + '/unit/list')
-    .then(res => {
-      this.unitList = res.data || [];
-      console.log("unitList=", this.unitList);
-      console.log("user.unitcode=", this.user.unitcode);
-    })
-    .catch(err => {
-      console.error("Unit取得失敗:", err);
-      this.unitList = [];
-    });
-},
+    loadUnits() {
+      this.$axios
+        .get(this.$httpUrl + "/unit/list")
+        .then(res => {
+          this.unitList = res.data || [];
+        })
+        .catch(err => {
+          console.error("Unit取得失敗:", err);
+          this.unitList = [];
+        });
+    },
 
-loadAuthorities() {
-  this.$axios.get(this.$httpUrl + '/m-authority/list')
-    .then(res => {
-      this.authorityList = res.data || [];
-      console.log("authorityList=", this.authorityList);
-      console.log("user.organizationcode=", this.user.organizationcode);
-      console.log("user.roleid=", this.user.roleid);
-      console.log("user.occupationcode=", this.user.occupationcode);
-      console.log("user.jobtitlecode=", this.user.jobtitlecode);
-    })
-    .catch(err => {
-      console.error("Authority取得失敗:", err);
-      this.authorityList = [];
-    });
-},
+    loadAuthorities() {
+      this.$axios
+        .get(this.$httpUrl + "/m-authority/list")
+        .then(res => {
+          this.authorityList = res.data || [];
+        })
+        .catch(err => {
+          console.error("Authority取得失敗:", err);
+          this.authorityList = [];
+        });
+    },
 
-getUnitName(unitcode) {
-  const unit = this.unitList.find(item => item.unitcode == unitcode);
-  return unit ? unit.name : "不明";
-},
+    getUnitName(unitcode) {
+      const unit = this.unitList.find(item => item.unitcode == unitcode);
+      return unit ? unit.name : "不明";
+    },
 
-getOrganizationName(code) {
-  const item = this.authorityList.find(row => row.organizationcode == code);
-  return item ? item.columnName : "不明";
-},
+    getOrganizationName(code) {
+      const item = this.authorityList.find(row => row.organizationcode == code);
+      return item ? item.columnName : "不明";
+    },
 
-getRoleName(code) {
-  const item = this.authorityList.find(row => row.roleid == code);
-  return item ? item.rolenm : "不明";
-},
+    getRoleName(code) {
+      const item = this.authorityList.find(row => row.roleid == code);
+      return item ? item.rolenm : "不明";
+    },
 
-getOccupationName(code) {
-  const item = this.authorityList.find(row => row.occupationcode == code);
-  return item ? item.occupationnm : "不明";
-},
+    getOccupationName(code) {
+      const item = this.authorityList.find(row => row.occupationcode == code);
+      return item ? item.occupationnm : "不明";
+    },
 
-getJobTitleName(code) {
-  const item = this.authorityList.find(row => row.jobtitlecode == code);
-  return item ? item.jobtitlenm : "不明";
-},
+    getJobTitleName(code) {
+      const item = this.authorityList.find(row => row.jobtitlecode == code);
+      return item ? item.jobtitlenm : "不明";
+    },
+
+    getCurrentMonthRange() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+
+      const formatDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      };
+
+      return {
+        startDate: formatDate(firstDay),
+        endDate: formatDate(lastDay)
+      };
+    },
+
+    formatNumber(value) {
+      const num = Number(value || 0);
+      return num.toLocaleString("ja-JP");
+    },
+
+    loadDashboardData() {
+      const range = this.getCurrentMonthRange();
+      this.chartLoading = true;
+
+      this.$axios
+        .get(this.$httpUrl + "/record/dashboardSummary", {
+          params: {
+            startDate: range.startDate,
+            endDate: range.endDate
+          }
+        })
+        .then(res => res.data)
+.then(res => {
+  if (res.code === 200) {
+    this.dashboardData = res.data || {
+      startDate: range.startDate,
+      endDate: range.endDate,
+      countList: [],
+      expenseList: []
+    };
+
+    this.totalCount = (this.dashboardData.countList || []).reduce((sum, item) => {
+      return sum + Number(item.totalCount || 0);
+    }, 0);
+
+    this.totalExpense = (this.dashboardData.expenseList || []).reduce((sum, item) => {
+      return sum + Number(item.totalExpense || 0);
+    }, 0);
+
+    this.initBuilderChart();
+  } else {
+    this.$message.error("ダッシュボードデータ取得失敗");
+  }
+})
+        .catch(err => {
+          console.error("ダッシュボードデータ取得失敗:", err);
+          this.$message.error("ダッシュボードデータ取得に失敗しました");
+        })
+        .finally(() => {
+          this.chartLoading = false;
+        });
+    },
 
     initBuilderChart() {
       const el = this.$refs.builderChart;
@@ -151,208 +240,127 @@ getJobTitleName(code) {
         this.chart.dispose();
         this.chart = null;
       }
+
       this.chart = echarts.init(el);
 
-      const builderJson = {
-        all: 10887,
-        charts: {
-          大宮ユニット: 948567,
-          川口ユニット: 789645,
-          船橋ユニット: 234562,
-          鴻巣ユニット: 897456,
-          岩槻ユニット: 245697,
-          横浜ユニット: 123698,
-          浮島ユニット: 785496,
-          厚木ユニット: 458963,
-          大宮センター: 2485961,
-          岩槻センター: 1896741,
-          厚木センター: 2978546,
-          浮島センター: 1237896
-        },
-        components: {
-          大宮ユニット: 15,
-          川口ユニット: 34,
-          船橋ユニット: 55,
-          鴻巣ユニット: 20,
-          岩槻ユニット: 11,
-          横浜ユニット: 22,
-          浮島ユニット: 28,
-          厚木ユニット: 150,
-          大宮センター: 250,
-          岩槻センター: 300,
-          厚木センター: 350,
-          浮島センター: 400
-        },
-        ie: 9743
-      };
+      const countList = this.dashboardData.countList || [];
+      const expenseList = this.dashboardData.expenseList || [];
 
-      const downloadJson = {
-        "仕分けミス（商品違い）": 17365,
-        "確認ミス": 4079,
-        "仕分けミス（過剰・不足）": 6929,
-        "配送中破損・紛失": 14890
-      };
+      const countNames = countList.map(item => item.centerName);
+      const countValues = countList.map(item => Number(item.totalCount || 0));
 
-      const themeJson = {
-        "その他（内容の詳細記載）": 1594,
-        "おろし間違え（不足、間違い、テレコ）": 925,
-        "積み付けミス": 1608,
-        "センター内破損": 721,
-        "顧客起因（誤発注、誤指示等": 2179,
-        "品質異常（解凍・温度帯間違え）": 1982
-      };
-
-      const waterMarkText = "ECHARTS";
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = canvas.height = 100;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.globalAlpha = 0.08;
-      ctx.font = "20px Microsoft Yahei";
-      ctx.translate(50, 50);
-      ctx.rotate(-Math.PI / 4);
-      ctx.fillText(waterMarkText, 0, 0);
+      const expenseNames = expenseList.map(item => item.centerName);
+      const expenseValues = expenseList.map(item => Number(item.totalExpense || 0));
 
       const option = {
-        backgroundColor: {
-          type: "pattern",
-          image: canvas,
-          repeat: "repeat"
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow"
+          },
+          formatter: (params) => {
+            let html = "";
+            params.forEach(item => {
+              if (item.seriesName === "件数") {
+                html += `${item.marker}${item.name} : ${this.formatNumber(item.value)} 件<br/>`;
+              } else if (item.seriesName === "費用") {
+                html += `${item.marker}${item.name} : ¥${this.formatNumber(item.value)}<br/>`;
+              }
+            });
+            return html;
+          }
         },
-        tooltip: {},
         title: [
           {
-            text: "当月当社のIR実績",
-            subtext: "合計 " + builderJson.all,
+            text: "営業所別 IR件数",
             left: "25%",
+            top: 20,
             textAlign: "center"
           },
           {
-            text: "自社要因別",
-            subtext:
-              "合計 " +
-              Object.keys(downloadJson).reduce(function (all, key) {
-                return all + downloadJson[key];
-              }, 0),
+            text: "営業所別 IR対応費用",
             left: "75%",
-            textAlign: "center"
-          },
-          {
-            text: "顧客要因別",
-            subtext:
-              "合計 " +
-              Object.keys(themeJson).reduce(function (all, key) {
-                return all + themeJson[key];
-              }, 0),
-            left: "75%",
-            top: "50%",
+            top: 20,
             textAlign: "center"
           }
         ],
         grid: [
           {
-            top: 50,
-            width: "50%",
-            bottom: "45%",
-            left: 10,
+            top: 80,
+            left: "5%",
+            width: "40%",
+            bottom: 40,
             containLabel: true
           },
           {
-            top: "55%",
-            width: "50%",
-            bottom: 0,
-            left: 10,
+            top: 80,
+            left: "55%",
+            width: "40%",
+            bottom: 40,
             containLabel: true
           }
         ],
         xAxis: [
           {
             type: "value",
-            max: MAX_TOP,
-            splitLine: { show: false }
+            gridIndex: 0,
+            splitLine: {
+              show: true
+            }
           },
           {
             type: "value",
-            max: MAX_BOTTOM,
             gridIndex: 1,
-            splitLine: { show: false }
+            splitLine: {
+              show: true
+            },
+            axisLabel: {
+              formatter: (value) => this.formatNumber(value)
+            }
           }
         ],
         yAxis: [
           {
             type: "category",
-            data: Object.keys(builderJson.charts),
-            axisLabel: { interval: 0, rotate: 30 },
-            splitLine: { show: false }
+            gridIndex: 0,
+            data: countNames,
+            axisLabel: {
+              interval: 0
+            }
           },
           {
-            gridIndex: 1,
             type: "category",
-            data: Object.keys(builderJson.components),
-            axisLabel: { interval: 0, rotate: 30 },
-            splitLine: { show: false }
+            gridIndex: 1,
+            data: expenseNames,
+            axisLabel: {
+              interval: 0
+            }
           }
         ],
         series: [
           {
+            name: "件数",
             type: "bar",
-            z: 3,
-            label: { position: "right", show: true },
-            data: Object.values(builderJson.charts)
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            label: {
+              show: true,
+              position: "right",
+              formatter: ({ value }) => `${this.formatNumber(value)}`
+            },
+            data: countValues
           },
           {
+            name: "費用",
             type: "bar",
-            stack: "chart",
-            silent: true,
-            itemStyle: { color: "#eee" },
-            data: Object.keys(builderJson.charts).map(function (key) {
-              return MAX_BOTTOM - builderJson.components[key];
-            })
-          },
-          {
-            type: "bar",
-            stack: "component",
             xAxisIndex: 1,
             yAxisIndex: 1,
-            z: 3,
-            label: { position: "right", show: true },
-            data: Object.keys(builderJson.components).map(function (key) {
-              return builderJson.components[key];
-            })
-          },
-          {
-            type: "bar",
-            stack: "component",
-            silent: true,
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            itemStyle: { color: "#eee" },
-            data: Object.keys(builderJson.components).map(function (key) {
-              return builderJson.all - builderJson.components[key];
-            })
-          },
-          {
-            type: "pie",
-            radius: [0, "30%"],
-            center: ["75%", "25%"],
-            data: Object.keys(downloadJson).map(function (key) {
-              return {
-                name: key,
-                value: downloadJson[key]
-              };
-            })
-          },
-          {
-            type: "pie",
-            radius: [0, "30%"],
-            center: ["75%", "75%"],
-            data: Object.keys(themeJson).map(function (key) {
-              return {
-                name: key,
-                value: themeJson[key]
-              };
-            })
+            label: {
+              show: true,
+              position: "right",
+              formatter: ({ value }) => this.formatNumber(value)
+            },
+            data: expenseValues
           }
         ]
       };
@@ -367,14 +375,17 @@ getJobTitleName(code) {
       }
     }
   },
+
   created() {
     this.init();
   },
+
   mounted() {
-  this.loadUnits();
-  this.loadAuthorities();
-  this.initBuilderChart();
+    this.loadUnits();
+    this.loadAuthorities();
+    this.loadDashboardData();
   },
+
   beforeDestroy() {
     window.removeEventListener("resize", this.handleResize);
     if (this.chart) {
@@ -386,6 +397,18 @@ getJobTitleName(code) {
 </script>
 
 <style scoped>
+.home-page {
+  text-align: center;
+  background-color: rgb(255, 255, 255);
+  min-height: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.page-title {
+  font-size: 50px;
+}
+
 .el-descriptions {
   width: 90%;
   margin: 0 auto;
@@ -398,7 +421,7 @@ getJobTitleName(code) {
   border-radius: 12px;
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
 .chart-title {
@@ -408,8 +431,43 @@ getJobTitleName(code) {
   background: rgba(0, 0, 0, 0.04);
 }
 
+.chart-subtitle {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #666;
+  font-weight: normal;
+}
+
 .chart {
   width: 100%;
   height: 650px;
+}
+
+.chart-summary-row {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 0 24px 24px;
+  flex-wrap: wrap;
+}
+
+.chart-summary-card {
+  min-width: 260px;
+  background: #f7f8fa;
+  border-radius: 10px;
+  padding: 16px 24px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
 }
 </style>
