@@ -199,7 +199,7 @@
 </el-col>
           <el-col :span="12">
            <el-form-item prop="affiliationcode">
-  <span slot="label"><span class="required-mark"></span>営業所</span>
+  <span slot="label"><span class="required-mark"></span>所属</span>
               <el-input
                 v-model="form1.affiliationcode"
                 readonly
@@ -276,10 +276,10 @@
 </el-col>
 
 <el-col :span="12">
-  <el-form-item label="センター名" prop="centernm">
+  <el-form-item label="IR計上拠点" prop="centernm">
     <el-select
       v-model="form1.centernm"
-      placeholder="センター名選択"
+      placeholder="IR計上拠点"
       class="full-width"
     >
       <el-option
@@ -498,7 +498,8 @@ merchandiseOptions: [],
   ],
     filledinby: [
     { required: true, message: "記入者を選択してください", trigger: "change" }
-  ]
+  ],
+  
 },
     rules: {}
   };
@@ -512,7 +513,16 @@ methods: {
     }
     this.form1.expenses = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   },
+handleSizeChange(size) {
+  this.pageSize = size;
+  this.pageNum = 1;   // サイズ変更時は1ページ目に戻す
+  this.loadPost();
+},
 
+handleCurrentChange(page) {
+  this.pageNum = page;
+  this.loadPost();
+},
   doSelectUser(val) {
     this.tempUser = val;
   },

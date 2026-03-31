@@ -11,7 +11,8 @@ module.exports = defineConfig({
     allowedHosts: "all",
     proxy: {
       "/api": {
-        target: "http://www.hokuoh-ir.online",
+        target: "https://www.hokuoh-ir.online",
+         //target: "http://localhost:8091",
         changeOrigin: true,
         pathRewrite: {
           "^/api": ""

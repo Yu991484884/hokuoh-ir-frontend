@@ -13,12 +13,14 @@
               filterable
               class="full-width"
             >
-              <el-option
-                v-for="unit in unitNames"
-                :key="unit.id"
-                :label="unit.name"
-                :value="unit.name"
-              />
+<el-option
+  v-for="item in centerNameOptions"
+  :key="item"
+  :label="item"
+  :value="item"
+/>
+
+
             </el-select>
           </div>
 
@@ -74,23 +76,23 @@ import * as XLSX from "xlsx";
 
 export default {
   name: "Echarts",
-  data() {
-    return {
-      unitNames: [],
-      affiliationcode: "",
-      today: [],
-      pageNum: 1,
-      pageSize: 10000,
-      chartInstance: null
-    };
-  },
+data() {
+  return {
+    centerNameOptions: [],
+    authorityOptionsLoaded: false,
+    affiliationcode: "",
+    today: [],
+    pageNum: 1,
+    pageSize: 10000,
+    chartInstance: null
+  };
+},
+mounted() {
+  this.initBie();
+  this.ensureAuthorityOptions();
 
-  mounted() {
-    this.initBie();
-    this.fetchUnitNames();
-
-    window.addEventListener("resize", this.handleResize);
-  },
+  window.addEventListener("resize", this.handleResize);
+},
 
   beforeDestroy() {
     window.removeEventListener("resize", this.handleResize);
@@ -230,17 +232,23 @@ export default {
       }
     },
 
-    fetchUnitNames() {
-      axios
-        .get(this.$httpUrl + "/record/units")
-        .then(response => {
-          this.unitNames = response.data.data || [];
-        })
-        .catch(error => {
-          console.error("営業所の名称取得失敗:", error);
-          this.$message.error("営業所一覧の取得に失敗しました");
-        });
-    },
+ensureAuthorityOptions() {
+  if (this.authorityOptionsLoaded) {
+    return;
+  }
+
+  axios
+    .get(this.$httpUrl + "/m-authority/options")
+    .then(response => {
+      const data = response.data.data || {};
+      this.centerNameOptions = data.centerNameList || [];
+      this.authorityOptionsLoaded = true;
+    })
+    .catch(error => {
+      console.error("拠点一覧の取得失敗:", error);
+      this.$message.error("営業所一覧の取得に失敗しました");
+    });
+},
 
     initBie() {
       const chartDom = document.getElementById("bie");

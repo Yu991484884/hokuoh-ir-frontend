@@ -13,12 +13,12 @@
               filterable
               class="full-width"
             >
-              <el-option
-                v-for="unit in unitNames"
-                :key="unit.id || unit.name"
-                :label="unit.name"
-                :value="unit.name"
-              />
+<el-option
+  v-for="item in centerNameOptions"
+  :key="item"
+  :label="item"
+  :value="item"
+/>
             </el-select>
           </div>
 
@@ -70,21 +70,22 @@ import * as XLSX from "xlsx";
 
 export default {
   name: "EchartsComponent",
-  data() {
-    return {
-      unitNames: [],
-      affiliationcode: "",
-      today: [],
-      myChart: null,
-      chartData: []
-    };
-  },
+data() {
+  return {
+    centerNameOptions: [],
+    authorityOptionsLoaded: false,
+    affiliationcode: "",
+    today: [],
+    myChart: null,
+    chartData: []
+  };
+},
 
-  mounted() {
-    this.initChart();
-    this.fetchUnitNames();
-    window.addEventListener("resize", this.handleResize);
-  },
+mounted() {
+  this.initChart();
+  this.ensureAuthorityOptions();
+  window.addEventListener("resize", this.handleResize);
+},
 
   beforeDestroy() {
     window.removeEventListener("resize", this.handleResize);
@@ -101,17 +102,23 @@ export default {
       }
     },
 
-    fetchUnitNames() {
-      axios
-        .get(this.$httpUrl + "/record/units")
-        .then(response => {
-          this.unitNames = response.data.data || [];
-        })
-        .catch(error => {
-          console.error("DATA取得失敗:", error);
-          this.$message.error("営業所一覧の取得に失敗しました");
-        });
-    },
+ensureAuthorityOptions() {
+  if (this.authorityOptionsLoaded) {
+    return;
+  }
+
+  axios
+    .get(this.$httpUrl + "/m-authority/options")
+    .then(response => {
+      const data = response.data.data || {};
+      this.centerNameOptions = data.centerNameList || [];
+      this.authorityOptionsLoaded = true;
+    })
+    .catch(error => {
+      console.error("営業所一覧取得失敗:", error);
+      this.$message.error("営業所一覧の取得に失敗しました");
+    });
+},
 
     initChart() {
       const chartDom = document.getElementById("bie");

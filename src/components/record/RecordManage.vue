@@ -6,20 +6,22 @@
         <div class="filter-grid">
           <div class="filter-item">
             <label class="filter-label">所属</label>
-            <el-select
-              v-model="affiliationcode"
-              placeholder="所属選択"
-              clearable
-              filterable
-              class="full-width"
-            >
-              <el-option
-                v-for="(name, index) in unitNames"
-                :key="index"
-                :label="name"
-                :value="name"
-              />
-            </el-select>
+
+<el-select
+  v-model="affiliationcode"
+  placeholder="所属選択"
+  clearable
+  filterable
+  class="full-width"
+>
+  <el-option
+    v-for="item in centerNameOptions"
+    :key="item"
+    :label="item"
+    :value="item"
+  />
+</el-select>
+
           </div>
 
           <div class="filter-item">
@@ -66,13 +68,15 @@
 
         <div class="toolbar">
           <div class="toolbar-left">
-            <el-button
-              type="primary"
-              icon="el-icon-search"
-              @click="loadPost"
-            >
-              検索
-            </el-button>
+
+<el-button
+  type="primary"
+  icon="el-icon-search"
+  @click="handleSearch"
+>
+  検索
+</el-button>
+
             <el-button
               icon="el-icon-refresh-left"
               @click="resetParam"
@@ -212,6 +216,30 @@
           />
 
           <el-table-column
+  prop="centernm"
+  label="IR計上先拠点"
+  width="150"
+/>
+
+<el-table-column
+  prop="filledinby"
+  label="記入者"
+  width="120"
+/>
+
+<el-table-column
+  prop="merchandise"
+  label="商品区分"
+  width="120"
+/>
+
+<el-table-column
+  prop="responsibility"
+  label="社内外"
+  width="100"
+/>
+
+          <el-table-column
             label="操作"
             width="180"
             align="center"
@@ -348,7 +376,7 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="営業所">
+            <el-form-item label="所属">
               <el-input
                 v-model="form.affiliationcode"
                 readonly
@@ -435,10 +463,10 @@
 </el-col>
 
 <el-col :span="12">
-  <el-form-item label="センター名">
+  <el-form-item label="IR計上拠点">
     <el-select
       v-model="form.centernm"
-      placeholder="センター名選択"
+      placeholder="IR計上拠点"
       class="full-width"
       @visible-change="handleAuthoritySelectOpen"
     >
@@ -658,16 +686,16 @@ merchandiseOptions: [],
     }
   };
 },
-  mounted() {
-    this.fetchUnitNames();
-    this.fetchFactorNames();
-    this.loadPost();
+mounted() {
+  this.ensureAuthorityOptions();
+  this.fetchFactorNames();
+  this.loadPost();
 
-    this.$nextTick(() => {
-      this.updateTopScrollbarWidth();
-      window.addEventListener("resize", this.updateTopScrollbarWidth);
-    });
-  },
+  this.$nextTick(() => {
+    this.updateTopScrollbarWidth();
+    window.addEventListener("resize", this.updateTopScrollbarWidth);
+  });
+},
 
   beforeDestroy() {
     window.removeEventListener("resize", this.updateTopScrollbarWidth);
@@ -679,6 +707,11 @@ merchandiseOptions: [],
       this.ensureAuthorityOptions();
     }
   },
+
+  handleSearch() {
+  this.pageNum = 1;
+  this.loadPost();
+},
 formatCreateDate(value) {
   if (!value) return "";
   const str = String(value);
@@ -819,59 +852,61 @@ async exportToCsv() {
       return;
     }
 
-    const headers = [
-      "no",
-      "today",
-      "factor",
-      "responsibility",
-      "classification",
-      "affiliationcode",
-      "userid",
-      "causeperson",
-      "corporateentity",
-      "storename",
-      "progress",
-      "reporter",
-      "temperature",
-      "temperaturenm",
-      "correspondence",
-      "correspondenceperson",
-      "responderid",
-      "countermeasure",
-      "countermeasurenone",
-      "expenses",
-      "photograph",
-      "createtime",
-      "updatetime",
-      "adminuserid"
-    ];
+const headers = [
+  "no",
+  "today",
+  "factor",
+  "classification",
+  "affiliationcode",
+  "userid",
+  "causeperson",
+  "corporateentity",
+  "storename",
+  "progress",
+  "reporter",
+  "temperature",
+  "correspondence",
+  "correspondenceperson",
+  "countermeasure",
+  "countermeasurenone",
+  "expenses",
+    "responsibility",
+        "centernm",
+                "merchandise",
+                                "filledinbyid",
+                                "filledinby",
+  "createtime",
+  "updatetime",
+  "adminuserid"
+];
 
-    const headerLabels = [
-      "ID",
-      "発生日",
-      "要因",
-      "社内外",
-      "区分",
-      "所属",
-      "起因者ID",
-      "起因者",
-      "企業体名",
-      "店舗名",
-      "経緯",
-      "報告者",
-      "温度帯",
-      "温度帯名",
-      "対応方法",
-      "対応者",
-      "対応者ID",
-      "対応策",
-      "対応策記入有無",
-      "IR対応費用",
-      "写真URL",
-      "作成日時",
-      "更新日時",
-      "登録者"
-    ];
+const headerLabels = [
+  "ID",
+  "発生日",
+  "要因",
+  "区分",
+  "所属",
+  "起因者ID",
+  "起因者",
+  "企業体名",
+  "店舗名",
+  "経緯",
+  "報告者",
+  "温度帯",
+  "対応方法",
+  "対応者",
+  "対応策",
+  "対応策記入有無",
+  "IR対応費用",
+    "社内外",
+        "IR計上先拠点",
+                "商品区分",
+                                "記入者ID",
+                                                "記入者",
+  "作成日時",
+  "更新日時",
+  "登録者"
+];
 
     const formatValue = (value) => {
       if (value === null || value === undefined) {
@@ -1014,16 +1049,6 @@ resetForm() {
         });
     },
 
-    fetchUnitNames() {
-      this.$axios
-        .get(this.$httpUrl + "/unit/names")
-        .then((response) => {
-          this.unitNames = response.data.data || [];
-        })
-        .catch(() => {
-          this.$message.error("営業所一覧の取得に失敗しました");
-        });
-    },
 
     fetchFactorNames() {
       this.$axios
@@ -1137,36 +1162,43 @@ doMod() {
     });
 },
 
-    loadPost() {
-      this.$axios
-        .post(this.$httpUrl + "/record/listPageC1", {
-          pageSize: this.pageSize,
-          pageNum: this.pageNum,
-          param: {
-            affiliationcode: this.affiliationcode,
-            factor: this.factor,
-            causeperson: this.causeperson,
-            today: this.today,
-            userId: this.user.id + ""
-          }
-        })
-        .then((res) => res.data)
-        .then((res) => {
-          if (res.code == 200) {
-            this.tableData = res.data;
-            this.total = res.total;
+loadPost() {
+  this.$axios
+    .post(this.$httpUrl + "/record/listPageC1", {
+      pageSize: this.pageSize,
+      pageNum: this.pageNum,
+      param: {
+        affiliationcode: this.affiliationcode,
+        factor: this.factor,
+        causeperson: this.causeperson,
+        today: this.today,
+        userId: this.user.id + ""
+      }
+    })
+    .then((res) => res.data)
+    .then((res) => {
+      if (res.code == 200) {
+        this.tableData = res.data || [];
+        this.total = res.total || 0;
 
-            this.$nextTick(() => {
-              this.updateTopScrollbarWidth();
-            });
-          } else {
-            this.$message.error("データ取得失敗");
-          }
-        })
-        .catch(() => {
-          this.$message.error("データ取得に失敗しました");
+        // 総件数はあるのに当ページのデータが空の場合
+        if (this.total > 0 && this.tableData.length === 0 && this.pageNum > 1) {
+          this.pageNum = 1;
+          this.loadPost();
+          return;
+        }
+
+        this.$nextTick(() => {
+          this.updateTopScrollbarWidth();
         });
-    },
+      } else {
+        this.$message.error("データ取得失敗");
+      }
+    })
+    .catch(() => {
+      this.$message.error("データ取得に失敗しました");
+    });
+},
 
 mod(row) {
   this.centerDialogVisible = true;
