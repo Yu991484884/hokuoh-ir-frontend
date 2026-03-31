@@ -8,7 +8,7 @@
             <label class="filter-label">所属</label>
 
 <el-select
-  v-model="affiliationcode"
+  v-model="centernm"
   placeholder="所属選択"
   clearable
   filterable
@@ -658,6 +658,7 @@ data() {
     centerNameOptions: [],
 merchandiseOptions: [],
     authorityOptionsLoaded: false,
+        centernm: "",
 
     form: {
       no: "",
@@ -791,7 +792,7 @@ async fetchAllRecordsForCsv() {
     pageSize: this.pageSize,
     pageNum: 1,
     param: {
-      affiliationcode: this.affiliationcode,
+       centernm: this.centernm,
       factor: this.factor,
       causeperson: this.causeperson,
       today: this.today,
@@ -820,7 +821,7 @@ async fetchAllRecordsForCsv() {
       pageSize: this.pageSize,
       pageNum: page,
       param: {
-        affiliationcode: this.affiliationcode,
+        centernm: this.centernm,
         factor: this.factor,
         causeperson: this.causeperson,
         today: this.today,
@@ -1168,7 +1169,7 @@ loadPost() {
       pageSize: this.pageSize,
       pageNum: this.pageNum,
       param: {
-        affiliationcode: this.affiliationcode,
+        centernm: this.centernm,
         factor: this.factor,
         causeperson: this.causeperson,
         today: this.today,
