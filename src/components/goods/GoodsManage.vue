@@ -499,7 +499,9 @@ merchandiseOptions: [],
     filledinby: [
     { required: true, message: "記入者を選択してください", trigger: "change" }
   ],
-  
+  centernm: [
+  { required: true, message: "IR計上拠点を選択してください", trigger: "change" }
+],
 },
     rules: {}
   };
